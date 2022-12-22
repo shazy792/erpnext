@@ -447,7 +447,7 @@ class calculate_taxes_and_totals(object):
 			)
 
 		elif tax.charge_type == "On Net Total":
-			if item.is_schedule_three:
+			if getattr(item, 'is_schedule_three', False):
 				current_tax_amount = (tax_rate / 100.0) * item.amount
 			else:
 				current_tax_amount = (tax_rate / 100.0) * item.net_amount
