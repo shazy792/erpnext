@@ -438,11 +438,13 @@ erpnext.taxes_and_totals = class TaxesAndTotals extends erpnext.payments {
 				((item.net_amount / this.frm.doc.net_total) * actual) : 0.0;
 
 		} else if(tax.charge_type == "On Net Total") {
-			if (item.is_schedule_three) {
-				current_tax_amount = (tax_rate / 100.0) * item.amount;
+			if (item.tax_code == "PKS3") {
+				current_tax_amount = (tax_rate / 100.0) * item.price_list_rate * item.qty;
+				console.log("HERE", tax_rate, item.price_list_rate, item.qty)
 			} else {
 				current_tax_amount = (tax_rate / 100.0) * item.net_amount;
 			}
+			console.log("TAX AMT", current_tax_amount)
 		} else if(tax.charge_type == "On Previous Row Amount") {
 			current_tax_amount = (tax_rate / 100.0) *
 				this.frm.doc["taxes"][cint(tax.row_id) - 1].tax_amount_for_current_item;

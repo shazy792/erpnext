@@ -447,8 +447,8 @@ class calculate_taxes_and_totals(object):
 			)
 
 		elif tax.charge_type == "On Net Total":
-			if getattr(item, 'is_schedule_three', False):
-				current_tax_amount = (tax_rate / 100.0) * item.amount
+			if item.tax_code == "PKS3":
+				current_tax_amount = (tax_rate / 100.0) * item.price_list_rate * item.qty
 			else:
 				current_tax_amount = (tax_rate / 100.0) * item.net_amount
 		elif tax.charge_type == "On Previous Row Amount":
