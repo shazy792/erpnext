@@ -247,7 +247,7 @@ class PaymentEntry(AccountsController):
 		self.set_target_exchange_rate(ref_doc)
 
 	def set_source_exchange_rate(self, ref_doc=None):
-		if self.paid_from and not self.source_exchange_rate:
+		if self.paid_from:
 			if self.paid_from_account_currency == self.company_currency:
 				self.source_exchange_rate = 1
 			else:
@@ -622,7 +622,7 @@ class PaymentEntry(AccountsController):
 				self.payment_type == "Receive"
 				and self.base_total_allocated_amount < self.base_received_amount + total_deductions
 				and self.total_allocated_amount
-				< self.paid_amount + (total_deductions / self.source_exchange_rate)
+				< flt(self.paid_amount) + (total_deductions / self.source_exchange_rate)
 			):
 				self.unallocated_amount = (
 					self.base_received_amount + total_deductions - self.base_total_allocated_amount
@@ -632,7 +632,7 @@ class PaymentEntry(AccountsController):
 				self.payment_type == "Pay"
 				and self.base_total_allocated_amount < (self.base_paid_amount - total_deductions)
 				and self.total_allocated_amount
-				< self.received_amount + (total_deductions / self.target_exchange_rate)
+				< flt(self.received_amount) + (total_deductions / self.target_exchange_rate)
 			):
 				self.unallocated_amount = (
 					self.base_paid_amount - (total_deductions + self.base_total_allocated_amount)
@@ -1758,6 +1758,8 @@ def get_payment_entry(
 	pe.setup_party_account_field()
 	pe.set_missing_values()
 
+	update_accounting_dimensions(pe, doc)
+
 	if party_account and bank:
 		pe.set_exchange_rate(ref_doc=reference_doc)
 		pe.set_amounts()
@@ -1773,6 +1775,18 @@ def get_payment_entry(
 			pe.set_difference_amount()
 
 	return pe
+
+
+def update_accounting_dimensions(pe, doc):
+	"""
+	Updates accounting dimensions in Payment Entry based on the accounting dimensions in the reference document
+	"""
+	from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
+		get_accounting_dimensions,
+	)
+
+	for dimension in get_accounting_dimensions():
+		pe.set(dimension, doc.get(dimension))
 
 
 def get_bank_cash_account(doc, bank_account):
