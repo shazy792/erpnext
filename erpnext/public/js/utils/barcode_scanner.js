@@ -49,13 +49,14 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 			if (["Purchase Receipt", "Stock Reconciliation"].includes(this.frm.doctype)) {
 				if (input.length < 20) {
-					this.fail_sound();
+					this.play_fail_sound();
 					return;
 				}
 
 				const scanned_item_code = input.substring(0, 6);
 
 				this.scan_api_call(scanned_item_code, (r) => {
+					console.log(">>>", data);
 					const data = r && r.message;
 					if (!data || Object.keys(data).length === 0) {
 						this.show_alert(__("Cannot find Item with this Barcode"), "red");
@@ -118,6 +119,8 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 			const {item_code, barcode, batch_no, serial_no, uom} = data;
 
 			let row = this.get_row_to_modify_on_scan(item_code, batch_no, uom, barcode);
+
+			console.log(">>row>>", row);
 
 			this.is_new_row = false;
 			if (!row) {
