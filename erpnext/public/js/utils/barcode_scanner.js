@@ -47,38 +47,17 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				return;
 			}
 
+			console.log(">>input", input);
+
 			if (["Purchase Receipt", "Stock Reconciliation"].includes(this.frm.doctype)) {
 				if (input.length < 20) {
 					this.play_fail_sound();
 					return;
 				}
-
-				const scanned_item_code = input.substring(0, 6);
-
-				this.scan_api_call(scanned_item_code, (r) => {
-					console.log(">>>", data);
-					const data = r && r.message;
-					if (!data || Object.keys(data).length === 0) {
-						this.show_alert(__("Cannot find Item with this Barcode"), "red");
-						this.clean_up();
-						this.play_fail_sound();
-						reject();
-						return;
-					}
-	
-					data.serial_no = input;
-
-					me.update_table(data).then(row => {
-						this.play_success_sound();
-						resolve(row);
-					}).catch(() => {
-						this.play_fail_sound();
-						reject();
-					});
-				});
 			}
+			const parsed_input = input.length > 19 ? input.substring(0, 6) : input;
 
-			this.scan_api_call(input, (r) => {
+			this.scan_api_call(parsed_input, (r) => {
 				const data = r && r.message;
 				if (!data || Object.keys(data).length === 0) {
 					this.show_alert(__("Cannot find Item with this Barcode"), "red");
@@ -87,6 +66,10 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					reject();
 					return;
 				}
+
+				if (input.length > 19) data.serial_no = input;
+
+				console.log(">>>data", data);
 
 				me.update_table(data).then(row => {
 					this.play_success_sound();
@@ -116,7 +99,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		return new Promise(resolve => {
 			let cur_grid = this.frm.fields_dict[this.items_table_name].grid;
 
-			const {item_code, barcode, batch_no, serial_no, uom} = data;
+			const { item_code, barcode, batch_no, serial_no, uom } = data;
 
 			let row = this.get_row_to_modify_on_scan(item_code, batch_no, uom, barcode);
 
@@ -164,7 +147,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	// batch and serial selector is reduandant when all info can be added by scan
 	// this flag on item row is used by transaction.js to avoid triggering selector
 	set_selector_trigger_flag(data) {
-		const {batch_no, serial_no, has_batch_no, has_serial_no} = data;
+		const { batch_no, serial_no, has_batch_no, has_serial_no } = data;
 
 		const require_selecting_batch = has_batch_no && !batch_no;
 		const require_selecting_serial = has_serial_no && !serial_no;
@@ -181,14 +164,14 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	set_item(row, item_code, barcode, batch_no, serial_no) {
 		return new Promise(resolve => {
 			const increment = async (value = 1) => {
-				const item_data = {item_code: item_code};
+				const item_data = { item_code: item_code };
 				item_data[this.qty_field] = Number((row[this.qty_field] || 0)) + Number(value);
 				await frappe.model.set_value(row.doctype, row.name, item_data);
 				return value;
 			};
 
 			if (this.prompt_qty) {
-				frappe.prompt(__("Please enter quantity for item {0}", [item_code]), ({value}) => {
+				frappe.prompt(__("Please enter quantity for item {0}", [item_code]), ({ value }) => {
 					increment(value).then((value) => resolve(value));
 				});
 			} else if (this.frm.has_items) {
@@ -207,7 +190,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		})
 
 		this.dialog.set_primary_action(__("Update"), () => {
-			const item_data = {item_code: item_code};
+			const item_data = { item_code: item_code };
 			item_data[this.qty_field] = this.dialog.get_value("scanned_qty");
 			item_data["has_item_scanned"] = 1;
 
@@ -315,7 +298,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	update_dialog_values(scanned_item, r) {
-		const {item_code, barcode, batch_no, serial_no} = r.message;
+		const { item_code, barcode, batch_no, serial_no } = r.message;
 
 		this.dialog.set_value("barcode_scanner", "");
 		if (item_code === scanned_item &&
@@ -347,7 +330,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	add_child_for_remaining_qty(prev_row) {
-		if (this.remaining_qty && this.remaining_qty >0) {
+		if (this.remaining_qty && this.remaining_qty > 0) {
 			let cur_grid = this.frm.fields_dict[this.items_table_name].grid;
 			let row = frappe.model.add_child(this.frm.doc, cur_grid.doctype, this.items_table_name);
 
@@ -461,7 +444,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		this.scan_barcode_field.set_value("");
 		refresh_field(this.items_table_name);
 	}
-	show_alert(msg, indicator, duration=3) {
-		frappe.show_alert({message: msg, indicator: indicator}, duration);
+	show_alert(msg, indicator, duration = 3) {
+		frappe.show_alert({ message: msg, indicator: indicator }, duration);
 	}
 };
