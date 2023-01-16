@@ -47,8 +47,35 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				return;
 			}
 
-			console.log(">>>", this.frm);
-			console.log(">>>input>>>", input);
+			if (["Purchase Receipt", "Stock Reconciliation"].includes(this.frm.doctype)) {
+				if (input.length < 20) {
+					this.fail_sound();
+					return;
+				}
+
+				const scanned_item_code = input.substring(0, 6);
+
+				this.scan_api_call(scanned_item_code, (r) => {
+					const data = r && r.message;
+					if (!data || Object.keys(data).length === 0) {
+						this.show_alert(__("Cannot find Item with this Barcode"), "red");
+						this.clean_up();
+						this.play_fail_sound();
+						reject();
+						return;
+					}
+	
+					data.serial_no = input;
+
+					me.update_table(data).then(row => {
+						this.play_success_sound();
+						resolve(row);
+					}).catch(() => {
+						this.play_fail_sound();
+						reject();
+					});
+				});
+			}
 
 			this.scan_api_call(input, (r) => {
 				const data = r && r.message;
