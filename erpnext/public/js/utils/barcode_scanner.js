@@ -47,6 +47,9 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				return;
 			}
 
+			console.log(">>>", this.frm);
+			console.log(">>>input>>>", input);
+
 			this.scan_api_call(input, (r) => {
 				const data = r && r.message;
 				if (!data || Object.keys(data).length === 0) {
