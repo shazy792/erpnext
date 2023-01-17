@@ -81,7 +81,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	scan_api_call(input, callback) {
-		const args = this.custom_flow ? { item_code: input.substring(0,6) } : { search_value: input }
+		const args = this.custom_flow ? { args: { item_code: input.substring(0, 6) } } : { search_value: input }
 		console.log('>>args', args);
 		frappe
 			.call({
