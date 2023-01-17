@@ -3,14 +3,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		this.frm = opts.frm;
 
 		this.custom_flow = ["Purchase Receipt", "Stock Reconciliation"].includes(this.frm.doctype);
-		this.warehouse_field = null;
-		if (["Purchase Receipt"].includes(this.frm.doctype)) {
-			this.warehouse_field = "accepted_warehouse"
-		}
-
-		if (["Stock Reconciliation"].includes(this.frm.doctype)) {
-			this.warehouse_field = "warehouse"
-		}
+		this.warehouse_field = this.custom_flow ? "warehouse" : null;
 
 		// field from which to capture input of scanned data
 		this.scan_field_name = opts.scan_field_name || "scan_barcode";
@@ -453,15 +446,12 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				const item_match = row.item_code == item_code;
 				const uom_match = !uom || row[this.uom_field] == uom;
 				const warehouse_match = row[this.warehouse_field] == this.frm.doc.current_warehouse;
-	
-				console.log(item_match, uom, warehouse_match);
 
 				return item_match
 					&& warehouse_match
 			}
 		}
 
-		console.log("matching row>>", this.items_table.find(matching_row));
 		return this.items_table.find(matching_row) || this.get_existing_blank_row();
 	}
 
