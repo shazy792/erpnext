@@ -449,7 +449,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				&& (!check_max_qty || qty_in_limit)
 		}
 
-		console.log("matching row", matching_row)
+		console.log("matching row>>", this.items_table.find(matching_row));
 		return this.items_table.find(matching_row) || this.get_existing_blank_row();
 	}
 
