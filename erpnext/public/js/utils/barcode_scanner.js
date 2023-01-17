@@ -37,7 +37,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		//     serial_no: "987XYZ", // present if serial no was scanned
 		//     uom: "Kg", // present if barcode UOM is different from default
 		// }
-		this.scan_api = this.custom_flow ? "erpnext.stock.get_item_details.get_item_details" : opts.scan_api || "erpnext.stock.utils.scan_barcode";
+		this.scan_api = opts.scan_api || "erpnext.stock.utils.scan_barcode";
 	}
 
 	process_scan() {
@@ -81,7 +81,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	scan_api_call(input, callback) {
-		const args = this.custom_flow ? { args: { item_code: input.substring(0, 6), company: this.frm.doc.company } } : { search_value: input }
+		const args = this.custom_flow ? { search_value: input.substring(0, 6) } : { search_value: input }
 		console.log('>>args', args);
 		frappe
 			.call({
