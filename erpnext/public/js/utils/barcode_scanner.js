@@ -167,7 +167,6 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				const item_data = { item_code: item_code };
 				if (this.custom_flow) {
 					item_data[this.serial_no_field] = this.get_serial_no(row, serial_no);
-					console.log(this.frm.doc.current_warehouse, this.warehouse_field)
 					if (this.frm.doc.current_warehouse && this.warehouse_field) {
 						item_data[this.warehouse_field] = this.frm.doc.current_warehouse
 					}
@@ -450,6 +449,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				&& (!check_max_qty || qty_in_limit)
 		}
 
+		console.log("matching row", matching_row)
 		return this.items_table.find(matching_row) || this.get_existing_blank_row();
 	}
 
