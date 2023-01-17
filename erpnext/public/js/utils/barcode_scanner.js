@@ -8,7 +8,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 			this.warehouse_field = "accepted_warehouse"
 		}
 
-		if (["Purchase Receipt"].includes(this.frm.doctype)) {
+		if (["Stock Reconciliation"].includes(this.frm.doctype)) {
 			this.warehouse_field = "warehouse"
 		}
 
