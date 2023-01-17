@@ -64,6 +64,8 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					return;
 				}
 
+				data.custom_serial_no = this.custom_flow ? input : null;
+
 				me.update_table(data).then(row => {
 					this.play_success_sound();
 					resolve(row);
@@ -91,8 +93,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		return new Promise(resolve => {
 			let cur_grid = this.frm.fields_dict[this.items_table_name].grid;
 
-			const { item_code, barcode, batch_no, serial_no, uom } = data;
-			const custom_serial_no = this.custom_flow ? input : null;
+			const { item_code, barcode, batch_no, custom_serial_no, serial_no, uom } = data;
 
 			let row = this.get_row_to_modify_on_scan(item_code, batch_no, uom, barcode);
 
