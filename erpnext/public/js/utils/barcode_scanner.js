@@ -56,9 +56,8 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				this.play_fail_sound();
 				return;
 			}
-			const parsed_input = this.custom_flow ? input.substring(0, 6) : input;
 
-			this.scan_api_call(parsed_input, (r) => {
+			this.scan_api_call(input, (r) => {
 				const data = r && r.message;
 				if (!data || Object.keys(data).length === 0) {
 					this.show_alert(__("Cannot find Item with this Barcode"), "red");
@@ -82,7 +81,8 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	scan_api_call(input, callback) {
-		const args = this.custom_flow ? { item_code: value } : { search_value: input }
+		const args = this.custom_flow ? { item_code: input.substring(0,6) } : { search_value: input }
+		console.log('>>args', args);
 		frappe
 			.call({
 				method: this.scan_api,
