@@ -64,10 +64,6 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					return;
 				}
 
-				if (this.custom_flow) {
-					data.serial_no = input;
-				}
-
 				me.update_table(data).then(row => {
 					this.play_success_sound();
 					resolve(row);
@@ -96,6 +92,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 			let cur_grid = this.frm.fields_dict[this.items_table_name].grid;
 
 			const { item_code, barcode, batch_no, serial_no, uom } = data;
+			const custom_serial_no = this.custom_flow ? input : null;
 
 			let row = this.get_row_to_modify_on_scan(item_code, batch_no, uom, barcode);
 
@@ -116,7 +113,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				this.frm.has_items = false;
 			}
 
-			if (this.is_duplicate_serial_no(row, serial_no)) {
+			if (this.is_duplicate_serial_no(row, custom_serial_no || serial_no)) {
 				this.clean_up();
 				reject();
 				return;
@@ -128,7 +125,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					this.show_scan_message(row.idx, row.item_code, qty);
 				}),
 				() => this.set_barcode_uom(row, uom),
-				() => this.set_serial_no(row, serial_no),
+				() => this.set_serial_no(row, custom_serial_no || serial_no),
 				() => this.set_batch_no(row, batch_no),
 				() => this.set_barcode(row, barcode),
 				() => this.clean_up(),
@@ -349,6 +346,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	async set_serial_no(row, serial_no) {
+		console.log("row", row)
 		console.log('setting serial no', serial_no)
 		if (serial_no && frappe.meta.has_field(row.doctype, this.serial_no_field)) {
 			const existing_serial_nos = row[this.serial_no_field];
