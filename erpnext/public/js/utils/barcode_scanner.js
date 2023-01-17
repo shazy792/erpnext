@@ -172,7 +172,6 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					}
 				}
 				item_data[this.qty_field] = Number((row[this.qty_field] || 0)) + Number(value);
-				console.log(item_data)
 				await frappe.model.set_value(row.doctype, row.name, item_data);
 				return value;
 			};
@@ -435,7 +434,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		let is_batch_no_scan = batch_no && frappe.meta.has_field(cur_grid.doctype, this.batch_no_field);
 		let check_max_qty = this.max_qty_field && frappe.meta.has_field(cur_grid.doctype, this.max_qty_field);
 
-		const matching_row = (row) => {
+		let matching_row = (row) => {
 			const item_match = row.item_code == item_code;
 			const batch_match = (!row[this.batch_no_field] || row[this.batch_no_field] == batch_no);
 			const uom_match = !uom || row[this.uom_field] == uom;
@@ -447,6 +446,20 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				&& !item_scanned
 				&& (!is_batch_no_scan || batch_match)
 				&& (!check_max_qty || qty_in_limit)
+		}
+
+		if (["Stock Reconciliation"].includes(this.frm.doctype)) {
+			matching_row = (row) => {
+				const item_match = row.item_code == item_code;
+				const batch_match = (!row[this.batch_no_field] || row[this.batch_no_field] == batch_no);
+				const uom_match = !uom || row[this.uom_field] == uom;
+				const warehouse_match = row[this.warehouse_field] == this.frm.doc.current_warehouse;
+	
+				return item_match
+					&& uom_match
+					&& (!is_batch_no_scan || batch_match)
+					&& warehouse_match
+			}
 		}
 
 		console.log("matching row>>", this.items_table.find(matching_row));
