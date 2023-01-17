@@ -454,10 +454,9 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				const uom_match = !uom || row[this.uom_field] == uom;
 				const warehouse_match = row[this.warehouse_field] == this.frm.doc.current_warehouse;
 	
-				console.log(item_match, uom_match, warehouse_match);
+				console.log(item_match, uom, warehouse_match);
 
 				return item_match
-					&& uom_match
 					&& warehouse_match
 			}
 		}
