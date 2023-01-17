@@ -122,7 +122,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 			frappe.run_serially([
 				() => this.set_selector_trigger_flag(data),
-				() => this.set_item(row, item_code, barcode, batch_no, serial_no).then(qty => {
+				() => this.set_item(row, item_code, barcode, batch_no, custom_serial_no || serial_no).then(qty => {
 					this.show_scan_message(row.idx, row.item_code, qty);
 				}),
 				() => this.set_barcode_uom(row, uom),
@@ -157,6 +157,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		return new Promise(resolve => {
 			const increment = async (value = 1) => {
 				const item_data = { item_code: item_code };
+				if (this.custom_flow) item_data[this.serial_no_field] = get_serial_no(row, serial_no);
 				item_data[this.qty_field] = Number((row[this.qty_field] || 0)) + Number(value);
 				await frappe.model.set_value(row.doctype, row.name, item_data);
 				return value;
@@ -362,6 +363,21 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 			console.log('new serial nos', new_serial_nos)
 			await frappe.model.set_value(row.doctype, row.name, this.serial_no_field, new_serial_nos);
+		}
+	}
+
+	get_serial_no(row, serial_no) {
+		if (serial_no && frappe.meta.has_field(row.doctype, this.serial_no_field)) {
+			const existing_serial_nos = row[this.serial_no_field];
+			let new_serial_nos = "";
+
+			if (!!existing_serial_nos) {
+				new_serial_nos = existing_serial_nos + "\n" + serial_no;
+			} else {
+				new_serial_nos = serial_no;
+			}
+
+			return new_serial_nos;
 		}
 	}
 
