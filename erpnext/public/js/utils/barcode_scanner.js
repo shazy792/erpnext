@@ -3,7 +3,6 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		this.frm = opts.frm;
 
 		this.custom_flow = ["Purchase Receipt", "Stock Reconciliation"].includes(this.frm.doctype);
-		console.log('>>cf', this.custom_flow);
 
 		// field from which to capture input of scanned data
 		this.scan_field_name = opts.scan_field_name || "scan_barcode";
@@ -50,8 +49,6 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				return;
 			}
 
-			console.log(">>input", input);
-
 			if (this.custom_flow && input.length < 20) {
 				this.play_fail_sound();
 				return;
@@ -67,7 +64,11 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					return;
 				}
 
-				if (this.custom_flow) data.serial_no = input;
+				if (this.custom_flow && input.charAt(input.length - 1) === '\n') {
+					data.serial_no = input;
+				} else {
+					data.serial_no = input + '\n';
+				}
 
 				me.update_table(data).then(row => {
 					this.play_success_sound();
@@ -82,7 +83,6 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 	scan_api_call(input, callback) {
 		const args = this.custom_flow ? { search_value: input.substring(0, 6) } : { search_value: input }
-		console.log('>>args', args);
 		frappe
 			.call({
 				method: this.scan_api,
@@ -94,15 +94,12 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	update_table(data) {
-		console.log(">>data>>", data);
 		return new Promise(resolve => {
 			let cur_grid = this.frm.fields_dict[this.items_table_name].grid;
 
 			const { item_code, barcode, batch_no, serial_no, uom } = data;
 
 			let row = this.get_row_to_modify_on_scan(item_code, batch_no, uom, barcode);
-
-			console.log(">>row>>", row);
 
 			this.is_new_row = false;
 			if (!row) {
