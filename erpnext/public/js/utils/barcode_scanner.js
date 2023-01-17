@@ -451,13 +451,13 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		if (["Stock Reconciliation"].includes(this.frm.doctype)) {
 			matching_row = (row) => {
 				const item_match = row.item_code == item_code;
-				const batch_match = (!row[this.batch_no_field] || row[this.batch_no_field] == batch_no);
 				const uom_match = !uom || row[this.uom_field] == uom;
 				const warehouse_match = row[this.warehouse_field] == this.frm.doc.current_warehouse;
 	
+				console.log(item_match, uom_match, warehouse_match);
+
 				return item_match
 					&& uom_match
-					&& (!is_batch_no_scan || batch_match)
 					&& warehouse_match
 			}
 		}
