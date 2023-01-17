@@ -167,11 +167,13 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				const item_data = { item_code: item_code };
 				if (this.custom_flow) {
 					item_data[this.serial_no_field] = this.get_serial_no(row, serial_no);
+					console.log(this.frm.doc.current_warehouse, this.warehouse_field)
 					if (this.frm.doc.current_warehouse && this.warehouse_field) {
 						item_data[this.warehouse_field] = this.frm.doc.current_warehouse
 					}
 				}
 				item_data[this.qty_field] = Number((row[this.qty_field] || 0)) + Number(value);
+				console.log(item_data)
 				await frappe.model.set_value(row.doctype, row.name, item_data);
 				return value;
 			};
