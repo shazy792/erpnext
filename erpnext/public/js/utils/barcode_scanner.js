@@ -3,6 +3,14 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		this.frm = opts.frm;
 
 		this.custom_flow = ["Purchase Receipt", "Stock Reconciliation"].includes(this.frm.doctype);
+		this.warehouse_field = null;
+		if (["Purchase Receipt"].includes(this.frm.doctype)) {
+			this.warehouse_field = "accepted_warehouse"
+		}
+
+		if (["Purchase Receipt"].includes(this.frm.doctype)) {
+			this.warehouse_field = "warehouse"
+		}
 
 		// field from which to capture input of scanned data
 		this.scan_field_name = opts.scan_field_name || "scan_barcode";
@@ -157,7 +165,12 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		return new Promise(resolve => {
 			const increment = async (value = 1) => {
 				const item_data = { item_code: item_code };
-				if (this.custom_flow) item_data[this.serial_no_field] = this.get_serial_no(row, serial_no);
+				if (this.custom_flow) {
+					item_data[this.serial_no_field] = this.get_serial_no(row, serial_no);
+					if (this.frm.doc.current_warehouse && this.warehouse_field) {
+						item_data[this.warehouse_field] = this.frm.doc.current_warehouse
+					}
+				}
 				item_data[this.qty_field] = Number((row[this.qty_field] || 0)) + Number(value);
 				await frappe.model.set_value(row.doctype, row.name, item_data);
 				return value;
