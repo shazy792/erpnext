@@ -348,11 +348,9 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	async set_serial_no(row, serial_no) {
-		console.log("row", row)
-		console.log('setting serial no', serial_no)
+		if (this.custom_flow) return;
 		if (serial_no && frappe.meta.has_field(row.doctype, this.serial_no_field)) {
-			const existing_serial_nos = row[this.serial_no_field];
-			console.log('existing serial no', existing_serial_nos)
+			const existing_serial_nos = row[this.serial_no_field];			
 			let new_serial_nos = "";
 
 			if (!!existing_serial_nos) {
@@ -361,7 +359,6 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				new_serial_nos = serial_no;
 			}
 
-			console.log('new serial nos', new_serial_nos)
 			await frappe.model.set_value(row.doctype, row.name, this.serial_no_field, new_serial_nos);
 		}
 	}
