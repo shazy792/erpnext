@@ -2,6 +2,9 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	constructor(opts) {
 		this.frm = opts.frm;
 
+		this.custom_flow = ["Purchase Receipt", "Stock Reconciliation"].includes(this.frm.doctype);
+		console.log('>>cf', this.custom_flow);
+
 		// field from which to capture input of scanned data
 		this.scan_field_name = opts.scan_field_name || "scan_barcode";
 		this.scan_barcode_field = this.frm.fields_dict[this.scan_field_name];
@@ -34,7 +37,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		//     serial_no: "987XYZ", // present if serial no was scanned
 		//     uom: "Kg", // present if barcode UOM is different from default
 		// }
-		this.scan_api = opts.scan_api || "erpnext.stock.utils.scan_barcode";
+		this.scan_api = this.custom_flow ? "erpnext.stock.get_item_details.get_item_details" : opts.scan_api || "erpnext.stock.utils.scan_barcode";
 	}
 
 	process_scan() {
@@ -49,13 +52,11 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 			console.log(">>input", input);
 
-			if (["Purchase Receipt", "Stock Reconciliation"].includes(this.frm.doctype)) {
-				if (input.length < 20) {
-					this.play_fail_sound();
-					return;
-				}
+			if (this.custom_flow && input.length < 20) {
+				this.play_fail_sound();
+				return;
 			}
-			const parsed_input = input.length > 19 ? input.substring(0, 6) : input;
+			const parsed_input = this.custom_flow ? input.substring(0, 6) : input;
 
 			this.scan_api_call(parsed_input, (r) => {
 				const data = r && r.message;
@@ -67,9 +68,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					return;
 				}
 
-				if (input.length > 19) data.serial_no = input;
-
-				console.log(">>>data", data);
+				if (this.custom_flow) data.serial_no = input;
 
 				me.update_table(data).then(row => {
 					this.play_success_sound();
@@ -83,12 +82,11 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	scan_api_call(input, callback) {
+		const args = this.custom_flow ? { item_code: value } : { search_value: input }
 		frappe
 			.call({
 				method: this.scan_api,
-				args: {
-					search_value: input,
-				},
+				args,
 			})
 			.then((r) => {
 				callback(r);
