@@ -103,7 +103,9 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 
 			const {item_code, barcode, batch_no, serial_no, uom} = data;
 
-			const rows = this.get_item_rows(item_code);
+			const rows = this.get_item_rows(item_code) || [];
+			console.log(rows);
+
 			for (const row of rows) {
 				if (this.is_duplicate_serial_no(row, serial_no)) {
 					this.clean_up();
@@ -201,6 +203,8 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 	}
 
 	is_duplicate_serial_no(row, serial_no) {
+		if (!row) return false;
+		
 		const is_duplicate = row[this.serial_no_field]?.includes(serial_no);
 
 		if (is_duplicate) {
