@@ -1,9 +1,9 @@
-erpnext.utils.BarcodeScanner = class BarcodeScanner {
+erpnext.utils.SerialNoScanner = class SerialNoScanner {
 	constructor(opts) {
 		this.frm = opts.frm;
 
 		// field from which to capture input of scanned data
-		this.scan_field_name = opts.scan_field_name || "scan_barcode";
+		this.scan_field_name = opts.scan_field_name || "scan_serial_no";
 		this.scan_barcode_field = this.frm.fields_dict[this.scan_field_name];
 
 		this.barcode_field = opts.barcode_field || "barcode";
@@ -43,6 +43,9 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 			const input = this.scan_barcode_field.value;
 			this.scan_barcode_field.set_value("");
+			console.log('Processing Scan', input);
+			return;
+			
 			if (!input) {
 				return;
 			}
