@@ -222,7 +222,6 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 			const warehouse_match = row[this.warehouse_field] == this.scan_warehouse_field.value;
 
 			return item_match
-				&& uom_match
 				&& warehouse_match
 		}
 
