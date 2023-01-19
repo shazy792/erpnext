@@ -104,6 +104,7 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 			const { item_code, barcode, batch_no, serial_no, uom } = data;
 
 			if (this.is_duplicate_serial_no(item_code, serial_no)) {
+				console.log('found duplicate');
 				this.clean_up();
 				reject();
 				return;
@@ -139,6 +140,7 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 				const item_data = { item_code: item_code, serial_no: new_serial_nos };
 				item_data[this.warehouse_field] = this.scan_warehouse_field.value;
 				item_data[this.qty_field] = Number((row[this.qty_field] || 0)) + Number(value);
+				console.log('>>>item data', item_data);
 				await frappe.model.set_value(row.doctype, row.name, item_data);
 				return value;
 			};
