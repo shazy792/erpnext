@@ -24,7 +24,7 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 		// optional sound name to play when scan either fails or passes.
 		// see https://frappeframework.com/docs/v14/user/en/python-api/hooks#sounds
 		this.success_sound = opts.play_success_sound;
-		this.fail_sound = opts.play_fail_sound;
+		this.fail_sound = "error";
 
 		// any API that takes `search_value` as input and returns dictionary as follows
 		// {
@@ -43,7 +43,6 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 
 			const input = this.scan_barcode_field.value;
 			this.scan_barcode_field.set_value("");
-			console.log('Processing Scan', input);
 			if (!input) {
 				return;
 			}
@@ -103,20 +102,13 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 
 			const { item_code, barcode, batch_no, serial_no, uom } = data;
 
-			console.log(">>", data);
-
 			if (this.is_duplicate_serial_no(item_code, serial_no)) {
-				console.log('found duplicate');
 				this.clean_up();
 				reject();
 				return;
 			}
 
-			console.log("checked duplicates");
-
 			let row = this.get_row_to_modify_on_scan(item_code, batch_no, uom, barcode);
-
-			console.log(">>modify row", row)
 
 			this.is_new_row = false;
 			if (!row) {
@@ -146,7 +138,6 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 				const item_data = { item_code: item_code, serial_no: new_serial_nos };
 				item_data[this.warehouse_field] = this.scan_warehouse_field.value;
 				item_data[this.qty_field] = Number((row[this.qty_field] || 0)) + Number(value);
-				console.log('>>>item data', item_data);
 				await frappe.model.set_value(row.doctype, row.name, item_data);
 				return value;
 			};

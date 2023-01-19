@@ -255,6 +255,7 @@ default_roles = [
 sounds = [
 	{"name": "incoming-call", "src": "/assets/erpnext/sounds/incoming-call.mp3", "volume": 0.2},
 	{"name": "call-disconnect", "src": "/assets/erpnext/sounds/call-disconnect.mp3", "volume": 0.2},
+	{"name": "error", "src": "/assets/erpnext/sounds/error.mp3", "volume": 1.0},
 ]
 
 has_upload_permission = {
