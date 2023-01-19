@@ -199,6 +199,9 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 	}
 
 	is_duplicate_serial_no(rows, serial_no) {
+		if (!rows) {
+			return false;
+		}
 		const is_duplicate = rows.flatMap(row => row[this.serial_no_field])?.includes(serial_no);
 
 		if (is_duplicate) {
@@ -221,12 +224,9 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 	}
 
 	get_item_rows(item_code) {
-		const matching_row = (row) => {
-			const item_match = row.item_code == item_code;
-			return item_match
-		}
+		const matching_row = (row) => row.item_code == item_code;
 
-		return this.items_table.find(matching_row) || this.get_existing_blank_row();
+		return this.items_table.find(matching_row);
 	}
 
 	get_existing_blank_row() {
