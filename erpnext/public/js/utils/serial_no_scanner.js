@@ -8,7 +8,7 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 
 		//current warehouse field
 		this.scan_warehouse_name = opts.scan_field_name || "current_warehouse";
-		this.scan_warehouse_field = this.frm.fields_dict[this.scan_field_name];
+		this.scan_warehouse_field = this.frm.fields_dict[this.scan_warehouse_name];
 
 		//item warehouse field
 		this.warehouse_field = opts.warehouse_field || "warehouse";
