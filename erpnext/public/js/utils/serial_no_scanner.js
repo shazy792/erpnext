@@ -103,12 +103,13 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 
 			const {item_code, barcode, batch_no, serial_no, uom} = data;
 
-			let rows = this.get_item_rows(item_code);
-			console.log(rows);
-			if (this.is_duplicate_serial_no(rows, serial_no)) {
-				this.clean_up();
-				reject();
-				return;
+			const rows = this.get_item_rows(item_code);
+			for (const row of rows) {
+				if (this.is_duplicate_serial_no(row, serial_no)) {
+					this.clean_up();
+					reject();
+					return;
+				}
 			}
 
 			let row = this.get_row_to_modify_on_scan(item_code, batch_no, uom, barcode);
@@ -199,11 +200,8 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 		}
 	}
 
-	is_duplicate_serial_no(rows, serial_no) {
-		if (!rows) {
-			return false;
-		}
-		const is_duplicate = rows.flatMap(row => row[this.serial_no_field])?.includes(serial_no);
+	is_duplicate_serial_no(row, serial_no) {
+		const is_duplicate = row[this.serial_no_field]?.includes(serial_no);
 
 		if (is_duplicate) {
 			this.show_alert(__("Serial No {0} is already added", [serial_no]), "orange");
