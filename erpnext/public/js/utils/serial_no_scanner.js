@@ -101,17 +101,12 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 		return new Promise(resolve => {
 			let cur_grid = this.frm.fields_dict[this.items_table_name].grid;
 
-			const {item_code, barcode, batch_no, serial_no, uom} = data;
+			const { item_code, barcode, batch_no, serial_no, uom } = data;
 
-			const rows = this.get_item_rows(item_code) || [];
-			console.log(rows);
-
-			for (const row of rows) {
-				if (this.is_duplicate_serial_no(row, serial_no)) {
-					this.clean_up();
-					reject();
-					return;
-				}
+			if (this.is_duplicate_serial_no(item_code, serial_no)) {
+				this.clean_up();
+				reject();
+				return;
 			}
 
 			let row = this.get_row_to_modify_on_scan(item_code, batch_no, uom, barcode);
@@ -141,7 +136,7 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 		return new Promise(resolve => {
 			const increment = async (value = 1) => {
 				const new_serial_nos = this.get_serial_no(row, serial_no);
-				const item_data = {item_code: item_code, serial_no: new_serial_nos};
+				const item_data = { item_code: item_code, serial_no: new_serial_nos };
 				item_data[this.warehouse_field] = this.scan_warehouse_field.value;
 				item_data[this.qty_field] = Number((row[this.qty_field] || 0)) + Number(value);
 				await frappe.model.set_value(row.doctype, row.name, item_data);
@@ -202,16 +197,16 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 		}
 	}
 
-	is_duplicate_serial_no(row, serial_no) {
-		if (!row) return false;
-		
-		const is_duplicate = row[this.serial_no_field]?.includes(serial_no);
+	// is_duplicate_serial_no(row, serial_no) {
+	// 	if (!row) return false;
 
-		if (is_duplicate) {
-			this.show_alert(__("Serial No {0} is already added", [serial_no]), "orange");
-		}
-		return is_duplicate;
-	}
+	// 	const is_duplicate = row[this.serial_no_field]?.includes(serial_no);
+
+	// 	if (is_duplicate) {
+	// 		this.show_alert(__("Serial No {0} is already added", [serial_no]), "orange");
+	// 	}
+	// 	return is_duplicate;
+	// }
 
 	get_row_to_modify_on_scan(item_code, batch_no, uom, barcode) {
 		const matching_row = (row) => {
@@ -226,10 +221,18 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 		return this.items_table.find(matching_row) || this.get_existing_blank_row();
 	}
 
-	get_item_rows(item_code) {
-		const matching_row = (row) => row.item_code == item_code;
+	is_duplicate_serial_no(item_code, serial_no) {
+		const matching_row = (row) => {
+			return row.item_code == item_code
+				&& row[this.serial_no_field]?.includes(serial_no);
+		}
 
-		return this.items_table.find(matching_row);
+		if (this.items_table.find(matching_row)) {
+			this.show_alert(__("Serial No {0} is already added", [serial_no]), "orange");
+			return true;
+		}
+
+		return false;
 	}
 
 	get_existing_blank_row() {
@@ -248,7 +251,7 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 		this.scan_barcode_field.set_value("");
 		refresh_field(this.items_table_name);
 	}
-	show_alert(msg, indicator, duration=3) {
-		frappe.show_alert({message: msg, indicator: indicator}, duration);
+	show_alert(msg, indicator, duration = 3) {
+		frappe.show_alert({ message: msg, indicator: indicator }, duration);
 	}
 };
