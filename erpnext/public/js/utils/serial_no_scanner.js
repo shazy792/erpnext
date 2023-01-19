@@ -112,6 +112,8 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 
 			let row = this.get_row_to_modify_on_scan(item_code, batch_no, uom, barcode);
 
+			console.log(">>modify row", row)
+
 			this.is_new_row = false;
 			if (!row) {
 				this.is_new_row = true;
