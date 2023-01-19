@@ -138,7 +138,8 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 		return new Promise(resolve => {
 			const increment = async (value = 1) => {
 				const new_serial_nos = this.get_serial_no(row, serial_no);
-				const item_data = {item_code: item_code, new_serial_nos};
+				const item_data = {item_code: item_code, serial_no: new_serial_nos};
+				item_data[this.warehouse_field] = this.scan_warehouse_field.value;
 				item_data[this.qty_field] = Number((row[this.qty_field] || 0)) + Number(value);
 				await frappe.model.set_value(row.doctype, row.name, item_data);
 				return value;
@@ -217,7 +218,7 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 
 			return item_match
 				&& uom_match
-				&& (!is_batch_no_scan || batch_match)
+				&& warehouse_match
 		}
 
 		return this.items_table.find(matching_row) || this.get_existing_blank_row();
