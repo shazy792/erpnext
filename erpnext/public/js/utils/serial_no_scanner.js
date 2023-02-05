@@ -56,7 +56,7 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 			}
 
 			const serial_no_input = {
-				item_code: this.scan_barcode_field.value.substring(0, 6),
+				item_code: `XX${this.scan_barcode_field.value.substring(0, 6)}`,
 				serial_no: this.scan_barcode_field.value
 			}
 
