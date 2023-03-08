@@ -47,6 +47,11 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 				return;
 			}
 
+			if (input.substring(0, 5) === 'XXWH-') {
+				this.set_current_warehouse(input);
+				return;
+			}
+
 			if (input.length < 20) {
 				this.show_alert(__("Serial No not scanned"), "red");
 				this.clean_up();
@@ -81,6 +86,10 @@ erpnext.utils.SerialNoScanner = class SerialNoScanner {
 				});
 			});
 		});
+	}
+
+	set_current_warehouse(input) {
+		this.scan_warehouse_field.set_value(input.substring(5))
 	}
 
 	scan_api_call(input, callback) {
