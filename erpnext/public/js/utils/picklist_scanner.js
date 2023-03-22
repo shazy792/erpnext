@@ -1,4 +1,4 @@
-erpnext.utils.SerialNoScanner = class SerialNoScanner {
+erpnext.utils.PickListScanner = class PickListScanner {
 	constructor(opts) {
 		this.frm = opts.frm;
 
