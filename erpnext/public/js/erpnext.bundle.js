@@ -20,6 +20,7 @@ import "./call_popup/call_popup";
 import "./utils/dimension_tree_filter";
 import "./utils/barcode_scanner";
 import "./utils/serial_no_scanner";
+import "./utils/picklist_scanner";
 import "./telephony";
 import "./templates/call_link.html";
 import "./bulk_transaction_processing";
