@@ -103,13 +103,13 @@ erpnext.utils.PickListScanner = class PickListScanner {
 		}
 	}
 
-	get_row_to_modify_on_scan(item_code, serial_no) {
+	get_row_to_modify_on_scan(item_code, serial_no, callback) {
 		const matching_row = (row) => {
 			return row.item_code == item_code
 				&& row[this.serial_no_field]?.includes(serial_no);
 		}
 
-		return this.items_table.find(matching_row);
+		callback(this.items_table.find(matching_row));
 	}
 
 	play_success_sound() {
