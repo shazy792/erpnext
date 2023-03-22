@@ -16,7 +16,7 @@ erpnext.utils.PickListScanner = class PickListScanner {
 		this.serial_no_field = opts.serial_no_field || "serial_no";
 		this.batch_no_field = opts.batch_no_field || "batch_no";
 		this.uom_field = opts.uom_field || "uom";
-		this.qty_field = opts.qty_field || "qty";
+		this.qty_field = opts.qty_field || "picked_qty";
 
 		this.items_table_name = opts.items_table_name || "locations";
 		this.items_table = this.frm.doc[this.items_table_name];
@@ -51,7 +51,6 @@ erpnext.utils.PickListScanner = class PickListScanner {
 			}
 
 			this.get_row_to_modify_on_scan(serial_no_input.item_code, serial_no_input.serial_no, (r) => {
-        console.log('>>', r);
 				if (!r || Object.keys(r).length === 0) {
 					this.show_alert(__("Cannot find Item"), "red");
 					this.clean_up();
@@ -86,6 +85,7 @@ erpnext.utils.PickListScanner = class PickListScanner {
 	set_item(row) {
 		return new Promise(resolve => {
 			const increment = async (value = 1) => {
+        const item_data = {};
 				item_data[this.qty_field] = Number((row[this.qty_field] || 0)) + Number(value);
 				await frappe.model.set_value(row.doctype, row.name, item_data);
 				return value;
