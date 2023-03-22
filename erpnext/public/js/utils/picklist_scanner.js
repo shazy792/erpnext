@@ -51,6 +51,7 @@ erpnext.utils.PickListScanner = class PickListScanner {
 			}
 
 			this.get_row_to_modify_on_scan(serial_no_input.item_code, serial_no_input.serial_no, (r) => {
+        console.log('>>', r);
 				if (!r || Object.keys(r).length === 0) {
 					this.show_alert(__("Cannot find Item"), "red");
 					this.clean_up();
@@ -106,7 +107,7 @@ erpnext.utils.PickListScanner = class PickListScanner {
 	get_row_to_modify_on_scan(item_code, serial_no, callback) {
 		const matching_row = (row) => {
 			return row.item_code == item_code
-				&& row[this.serial_no_field]?.includes(serial_no);
+				&& row[this.serial_no_field]?.split('\n')?.includes(serial_no);
 		}
 
 		callback(this.items_table.find(matching_row));
