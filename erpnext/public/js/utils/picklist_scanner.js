@@ -46,8 +46,8 @@ erpnext.utils.PickListScanner = class PickListScanner {
 			}
 
 			const serial_no_input = {
-				item_code: `XX${this.scan_barcode_field.value.substring(0, 6)}`,
-				serial_no: this.scan_barcode_field.value
+				item_code: `${this.input.value.substring(0, 6)}`,
+				serial_no: this.input.value
 			}
 
 			this.get_row_to_modify_on_scan(serial_no_input.item_code, serial_no_input.serial_no, (r) => {
