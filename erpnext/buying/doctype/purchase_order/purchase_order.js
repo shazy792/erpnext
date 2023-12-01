@@ -3,7 +3,10 @@
 
 frappe.provide("erpnext.buying");
 frappe.provide("erpnext.accounts.dimensions");
-{% include 'erpnext/public/js/controllers/buying.js' %};
+
+erpnext.accounts.taxes.setup_tax_filters("Purchase Taxes and Charges");
+erpnext.accounts.taxes.setup_tax_validations("Purchase Order");
+erpnext.buying.setup_buying_controller();
 
 frappe.ui.form.on("Purchase Order", {
 	setup: function(frm) {
@@ -62,7 +65,7 @@ frappe.ui.form.on("Purchase Order", {
 	get_materials_from_supplier: function(frm) {
 		let po_details = [];
 
-		if (frm.doc.supplied_items && (frm.doc.per_received == 100 || frm.doc.status === 'Closed')) {
+		if (frm.doc.supplied_items && (flt(frm.doc.per_received, 2) == 100 || frm.doc.status === 'Closed')) {
 			frm.doc.supplied_items.forEach(d => {
 				if (d.total_supplied_qty && d.total_supplied_qty != d.consumed_qty) {
 					po_details.push(d.name)
@@ -115,6 +118,24 @@ frappe.ui.form.on("Purchase Order", {
 			frm.set_value("tax_withholding_category", frm.supplier_tds);
 		}
 	},
+
+	get_subcontracting_boms_for_finished_goods: function(fg_item) {
+		return frappe.call({
+			method:"erpnext.subcontracting.doctype.subcontracting_bom.subcontracting_bom.get_subcontracting_boms_for_finished_goods",
+			args: {
+				fg_items: fg_item
+			},
+		});
+	},
+
+	get_subcontracting_boms_for_service_item: function(service_item) {
+		return frappe.call({
+			method:"erpnext.subcontracting.doctype.subcontracting_bom.subcontracting_bom.get_subcontracting_boms_for_service_item",
+			args: {
+				service_item: service_item
+			},
+		});
+	},
 });
 
 frappe.ui.form.on("Purchase Order Item", {
@@ -129,15 +150,83 @@ frappe.ui.form.on("Purchase Order Item", {
 		}
 	},
 
-	qty: function(frm, cdt, cdn) {
+	item_code: async function(frm, cdt, cdn) {
 		if (frm.doc.is_subcontracted && !frm.doc.is_old_subcontracting_flow) {
 			var row = locals[cdt][cdn];
 
-			if (row.qty) {
-				row.fg_item_qty = row.qty;
+			if (row.item_code && !row.fg_item) {
+				var result = await frm.events.get_subcontracting_boms_for_service_item(row.item_code)
+
+				if (result.message && Object.keys(result.message).length) {
+					var finished_goods = Object.keys(result.message);
+
+					// Set FG if only one active Subcontracting BOM is found
+					if (finished_goods.length === 1) {
+						row.fg_item = result.message[finished_goods[0]].finished_good;
+						row.uom = result.message[finished_goods[0]].finished_good_uom;
+						refresh_field("items");
+					} else {
+						const dialog = new frappe.ui.Dialog({
+							title: __("Select Finished Good"),
+							size: "small",
+							fields: [
+								{
+									fieldname: "finished_good",
+									fieldtype: "Autocomplete",
+									label: __("Finished Good"),
+									options: finished_goods,
+								}
+							],
+							primary_action_label: __("Select"),
+							primary_action: () => {
+								var subcontracting_bom = result.message[dialog.get_value("finished_good")];
+
+								if (subcontracting_bom) {
+									row.fg_item = subcontracting_bom.finished_good;
+									row.uom = subcontracting_bom.finished_good_uom;
+									refresh_field("items");
+								}
+
+								dialog.hide();
+							},
+						});
+
+						dialog.show();
+					}
+				}
 			}
 		}
-	}
+	},
+
+	fg_item: async function(frm, cdt, cdn) {
+		if (frm.doc.is_subcontracted && !frm.doc.is_old_subcontracting_flow) {
+			var row = locals[cdt][cdn];
+
+			if (row.fg_item) {
+				var result = await frm.events.get_subcontracting_boms_for_finished_goods(row.fg_item)
+
+				if (result.message && Object.keys(result.message).length) {
+					frappe.model.set_value(cdt, cdn, "item_code", result.message.service_item);
+					frappe.model.set_value(cdt, cdn, "qty", flt(row.fg_item_qty) * flt(result.message.conversion_factor));
+					frappe.model.set_value(cdt, cdn, "uom", result.message.service_item_uom);
+				}
+			}
+		}
+	},
+
+	fg_item_qty: async function(frm, cdt, cdn) {
+		if (frm.doc.is_subcontracted && !frm.doc.is_old_subcontracting_flow) {
+			var row = locals[cdt][cdn];
+
+			if (row.fg_item) {
+				var result = await frm.events.get_subcontracting_boms_for_finished_goods(row.fg_item)
+
+				if (result.message && row.item_code == result.message.service_item && row.uom == result.message.service_item_uom) {
+					frappe.model.set_value(cdt, cdn, "qty", flt(row.fg_item_qty) * flt(result.message.conversion_factor));
+				}
+			}
+		}
+	},
 });
 
 erpnext.buying.PurchaseOrderController = class PurchaseOrderController extends erpnext.buying.BuyingController {
@@ -181,9 +270,8 @@ erpnext.buying.PurchaseOrderController = class PurchaseOrderController extends e
 			}
 
 			if(!in_list(["Closed", "Delivered"], doc.status)) {
-				if(this.frm.doc.status !== 'Closed' && flt(this.frm.doc.per_received) < 100 && flt(this.frm.doc.per_billed) < 100) {
-					// Don't add Update Items button if the PO is following the new subcontracting flow.
-					if (!(this.frm.doc.is_subcontracted && !this.frm.doc.is_old_subcontracting_flow)) {
+				if(this.frm.doc.status !== 'Closed' && flt(this.frm.doc.per_received, 2) < 100 && flt(this.frm.doc.per_billed, 2) < 100) {
+					if (!this.frm.doc.__onload || this.frm.doc.__onload.can_update_items) {
 						this.frm.add_custom_button(__('Update Items'), () => {
 							erpnext.utils.update_child_items({
 								frm: this.frm,
@@ -195,7 +283,7 @@ erpnext.buying.PurchaseOrderController = class PurchaseOrderController extends e
 					}
 				}
 				if (this.frm.has_perm("submit")) {
-					if(flt(doc.per_billed, 6) < 100 || flt(doc.per_received, 6) < 100) {
+					if(flt(doc.per_billed, 2) < 100 || flt(doc.per_received, 2) < 100) {
 						if (doc.status != "On Hold") {
 							this.frm.add_custom_button(__('Hold'), () => this.hold_purchase_order(), __("Status"));
 						} else{
@@ -218,7 +306,7 @@ erpnext.buying.PurchaseOrderController = class PurchaseOrderController extends e
 			}
 			if(doc.status != "Closed") {
 				if (doc.status != "On Hold") {
-					if(flt(doc.per_received) < 100 && allow_receipt) {
+					if(flt(doc.per_received, 2) < 100 && allow_receipt) {
 						cur_frm.add_custom_button(__('Purchase Receipt'), this.make_purchase_receipt, __('Create'));
 						if (doc.is_subcontracted) {
 							if (doc.is_old_subcontracting_flow) {
@@ -231,23 +319,21 @@ erpnext.buying.PurchaseOrderController = class PurchaseOrderController extends e
 							}
 						}
 					}
-					if(flt(doc.per_billed) < 100)
+					if(flt(doc.per_billed, 2) < 100)
 						cur_frm.add_custom_button(__('Purchase Invoice'),
 							this.make_purchase_invoice, __('Create'));
 
-					if(flt(doc.per_billed) < 100 && doc.status != "Delivered") {
-						cur_frm.add_custom_button(__('Payment'), cur_frm.cscript.make_payment_entry, __('Create'));
+					if(flt(doc.per_billed, 2) < 100 && doc.status != "Delivered") {
+						this.frm.add_custom_button(
+							__('Payment'),
+							() => this.make_payment_entry(),
+							__('Create')
+						);
 					}
 
-					if(flt(doc.per_billed) < 100) {
+					if(flt(doc.per_billed, 2) < 100) {
 						this.frm.add_custom_button(__('Payment Request'),
 							function() { me.make_payment_request() }, __('Create'));
-					}
-
-					if(!doc.auto_repeat) {
-						cur_frm.add_custom_button(__('Subscription'), function() {
-							erpnext.utils.make_subscription(doc.doctype, doc.name)
-						}, __('Create'))
 					}
 
 					if (doc.docstatus === 1 && !doc.inter_company_order_reference) {
@@ -282,7 +368,7 @@ erpnext.buying.PurchaseOrderController = class PurchaseOrderController extends e
 			source_name: this.frm.doc.supplier,
 			target: this.frm,
 			setters: {
-				company: me.frm.doc.company
+				company: this.frm.doc.company
 			},
 			get_query_filters: {
 				docstatus: ["!=", 2],
@@ -365,7 +451,7 @@ erpnext.buying.PurchaseOrderController = class PurchaseOrderController extends e
 					},
 					allow_child_item_selection: true,
 					child_fieldname: "items",
-					child_columns: ["item_code", "qty"]
+					child_columns: ["item_code", "qty", "ordered_qty"]
 				})
 			}, __("Get Items From"));
 

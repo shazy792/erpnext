@@ -16,12 +16,31 @@ repos:
       - id: check-merge-conflict
       - id: check-ast
 
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.44.0
+    hooks:
+      - id: eslint
+        types_or: [javascript]
+        args: ['--quiet']
+        # Ignore any files that might contain jinja / bundles
+        exclude: |
+            (?x)^(
+                erpnext/public/dist/.*|
+                cypress/.*|
+                .*node_modules.*|
+                .*boilerplate.*|
+                erpnext/public/js/controllers/.*|
+                erpnext/templates/pages/order.js|
+                erpnext/templates/includes/.*
+            )$
+
   - repo: https://github.com/PyCQA/flake8
-    rev: 5.0.4
+    rev: 6.0.0
     hooks:
       - id: flake8
         additional_dependencies: [
           'flake8-bugbear',
+          'flake8-tuple',
         ]
         args: ['--config', '.github/helper/.flake8_strict']
         exclude: ".*setup.py$"
@@ -32,8 +51,8 @@ repos:
       - id: black
         additional_dependencies: ['click==8.0.4']
 
-  - repo: https://github.com/timothycrosley/isort
-    rev: 5.9.1
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
     hooks:
       - id: isort
         exclude: ".*setup.py$"

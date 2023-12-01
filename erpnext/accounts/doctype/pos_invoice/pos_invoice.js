@@ -1,9 +1,10 @@
 // Copyright (c) 2020, Frappe Technologies Pvt. Ltd. and contributors
 // For license information, please see license.txt
 
-{% include 'erpnext/selling/sales_common.js' %};
 frappe.provide("erpnext.accounts");
+erpnext.sales_common.setup_selling_controller();
 
+erpnext.accounts.pos.setup("POS Invoice");
 erpnext.selling.POSInvoiceController = class POSInvoiceController extends erpnext.selling.SellingController {
 	settings = {};
 
@@ -20,7 +21,7 @@ erpnext.selling.POSInvoiceController = class POSInvoiceController extends erpnex
 
 	onload(doc) {
 		super.onload();
-		this.frm.ignore_doctypes_on_cancel_all = ['POS Invoice Merge Log', 'POS Closing Entry'];
+		this.frm.ignore_doctypes_on_cancel_all = ['POS Invoice Merge Log', 'POS Closing Entry', 'Serial and Batch Bundle'];
 
 		if(doc.__islocal && doc.is_pos && frappe.get_route_str() !== 'point-of-sale') {
 			this.frm.script_manager.trigger("is_pos");
@@ -112,7 +113,8 @@ erpnext.selling.POSInvoiceController = class POSInvoiceController extends erpnex
 				party_type: "Customer",
 				account: this.frm.doc.debit_to,
 				price_list: this.frm.doc.selling_price_list,
-				pos_profile: pos_profile
+				pos_profile: pos_profile,
+				company_address: this.frm.doc.company_address
 			}, () => {
 				this.apply_pricing_rule();
 			});
@@ -129,6 +131,7 @@ erpnext.selling.POSInvoiceController = class POSInvoiceController extends erpnex
 			args: { "pos_profile": frm.pos_profile },
 			callback: ({ message: profile }) => {
 				this.update_customer_groups_settings(profile?.customer_groups);
+				this.frm.set_value("company", profile?.company);
 			},
 		});
 	}

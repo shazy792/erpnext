@@ -13,14 +13,15 @@ from frappe.utils import (
 	get_datetime,
 	get_datetime_str,
 	get_link_to_form,
+	get_system_timezone,
 	get_time,
-	get_time_zone,
 	get_weekdays,
 	getdate,
 	nowdate,
 	time_diff_in_seconds,
 	to_timedelta,
 )
+from frappe.utils.caching import redis_cache
 from frappe.utils.nestedset import get_ancestors_of
 from frappe.utils.safe_exec import get_safe_globals
 
@@ -28,6 +29,41 @@ from erpnext.support.doctype.issue.issue import get_holidays
 
 
 class ServiceLevelAgreement(Document):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		from erpnext.support.doctype.pause_sla_on_status.pause_sla_on_status import PauseSLAOnStatus
+		from erpnext.support.doctype.service_day.service_day import ServiceDay
+		from erpnext.support.doctype.service_level_priority.service_level_priority import (
+			ServiceLevelPriority,
+		)
+		from erpnext.support.doctype.sla_fulfilled_on_status.sla_fulfilled_on_status import (
+			SLAFulfilledOnStatus,
+		)
+
+		apply_sla_for_resolution: DF.Check
+		condition: DF.Code | None
+		default_priority: DF.Link | None
+		default_service_level_agreement: DF.Check
+		document_type: DF.Link
+		enabled: DF.Check
+		end_date: DF.Date | None
+		entity: DF.DynamicLink | None
+		entity_type: DF.Literal["", "Customer", "Customer Group", "Territory"]
+		holiday_list: DF.Link
+		pause_sla_on: DF.Table[PauseSLAOnStatus]
+		priorities: DF.Table[ServiceLevelPriority]
+		service_level: DF.Data
+		sla_fulfilled_on: DF.Table[SLAFulfilledOnStatus]
+		start_date: DF.Date | None
+		support_and_resolution: DF.Table[ServiceDay]
+	# end: auto-generated types
+
 	def validate(self):
 		self.validate_selected_doctype()
 		self.validate_doc()
@@ -208,6 +244,10 @@ class ServiceLevelAgreement(Document):
 
 	def on_update(self):
 		set_documents_with_active_service_level_agreement()
+
+	def clear_cache(self):
+		get_sla_doctypes.clear_cache()
+		return super().clear_cache()
 
 	def create_docfields(self, meta, service_level_agreement_fields):
 		last_index = len(meta.fields)
@@ -981,7 +1021,7 @@ def convert_utc_to_user_timezone(utc_timestamp, user):
 
 
 def get_tz(user):
-	return frappe.db.get_value("User", user, "time_zone") or get_time_zone()
+	return frappe.db.get_value("User", user, "time_zone") or get_system_timezone()
 
 
 @frappe.whitelist()
@@ -990,6 +1030,7 @@ def get_user_time(user, to_string=False):
 
 
 @frappe.whitelist()
+@redis_cache()
 def get_sla_doctypes():
 	doctypes = []
 	data = frappe.get_all("Service Level Agreement", {"enabled": 1}, ["document_type"], distinct=1)
@@ -998,3 +1039,7 @@ def get_sla_doctypes():
 		doctypes.append(entry.document_type)
 
 	return doctypes
+
+
+def add_sla_doctypes(bootinfo):
+	bootinfo.service_level_agreement_doctypes = get_sla_doctypes()

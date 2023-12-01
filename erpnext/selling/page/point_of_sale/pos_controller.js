@@ -225,6 +225,7 @@ erpnext.PointOfSale.Controller = class {
 		voucher.pos_opening_entry = this.pos_opening;
 		voucher.period_end_date = frappe.datetime.now_datetime();
 		voucher.posting_date = frappe.datetime.now_date();
+		voucher.posting_time = frappe.datetime.now_time();
 		frappe.set_route('Form', 'POS Closing Entry', voucher.name);
 	}
 
@@ -522,7 +523,7 @@ erpnext.PointOfSale.Controller = class {
 
 			const from_selector = field === 'qty' && value === "+1";
 			if (from_selector)
-				value = flt(item_row.qty) + flt(value);
+				value = flt(item_row.stock_qty) + flt(value);
 
 			if (item_row_exists) {
 				if (field === 'qty')
@@ -542,12 +543,20 @@ erpnext.PointOfSale.Controller = class {
 				if (!this.frm.doc.customer)
 					return this.raise_customer_selection_alert();
 
-				const { item_code, batch_no, serial_no, rate } = item;
+				const { item_code, batch_no, serial_no, rate, uom } = item;
 
 				if (!item_code)
 					return;
 
-				const new_item = { item_code, batch_no, rate, [field]: value };
+				if (rate == undefined || rate == 0) {
+					frappe.show_alert({
+						message: __('Price is not set for the item.'),
+						indicator: 'orange'
+					});
+					frappe.utils.play_sound("error");
+					return;
+				}
+				const new_item = { item_code, batch_no, rate, uom, [field]: value };
 
 				if (serial_no) {
 					await this.check_serial_no_availablilty(item_code, this.frm.doc.set_warehouse, serial_no);
@@ -559,8 +568,10 @@ erpnext.PointOfSale.Controller = class {
 
 				item_row = this.frm.add_child('items', new_item);
 
-				if (field === 'qty' && value !== 0 && !this.allow_negative_stock)
-					await this.check_stock_availability(item_row, value, this.frm.doc.set_warehouse);
+				if (field === 'qty' && value !== 0 && !this.allow_negative_stock) {
+					const qty_needed = value * item_row.conversion_factor;
+					await this.check_stock_availability(item_row, qty_needed, this.frm.doc.set_warehouse);
+				}
 
 				await this.trigger_new_item_events(item_row);
 
@@ -577,7 +588,7 @@ erpnext.PointOfSale.Controller = class {
 			console.log(error);
 		} finally {
 			frappe.dom.unfreeze();
-			return item_row;
+			return item_row; // eslint-disable-line no-unsafe-finally
 		}
 	}
 
@@ -598,12 +609,12 @@ erpnext.PointOfSale.Controller = class {
 			// if item is clicked twice from item selector
 			// then "item_code, batch_no, uom, rate" will help in getting the exact item
 			// to increase the qty by one
-			const has_batch_no = batch_no;
+			const has_batch_no = (batch_no !== 'null' && batch_no !== null);
 			item_row = this.frm.doc.items.find(
 				i => i.item_code === item_code
 					&& (!has_batch_no || (has_batch_no && i.batch_no === batch_no))
 					&& (i.uom === uom)
-					&& (i.rate == rate)
+					&& (i.rate === flt(rate))
 			);
 		}
 
@@ -649,6 +660,7 @@ erpnext.PointOfSale.Controller = class {
 		const is_stock_item = resp[1];
 
 		frappe.dom.unfreeze();
+		const bold_uom = item_row.stock_uom.bold();
 		const bold_item_code = item_row.item_code.bold();
 		const bold_warehouse = warehouse.bold();
 		const bold_available_qty = available_qty.toString().bold()
@@ -664,7 +676,7 @@ erpnext.PointOfSale.Controller = class {
 			}
 		} else if (is_stock_item && available_qty < qty_needed) {
 			frappe.throw({
-				message: __('Stock quantity not enough for Item Code: {0} under warehouse {1}. Available quantity {2}.', [bold_item_code, bold_warehouse, bold_available_qty]),
+				message: __('Stock quantity not enough for Item Code: {0} under warehouse {1}. Available quantity {2} {3}.', [bold_item_code, bold_warehouse, bold_available_qty, bold_uom]),
 				indicator: 'orange'
 			});
 			frappe.utils.play_sound("error");

@@ -286,7 +286,7 @@ erpnext.PointOfSale.ItemCart = class {
 			this.item_is_selected = false;
 			this.$cart_container.find('.cart-item-wrapper').css("background-color", "");
 		} else {
-			$cart_item.css("background-color", "var(--gray-50)");
+			$cart_item.css("background-color", "var(--control-bg)");
 			this.item_is_selected = true;
 			this.$cart_container.find('.cart-item-wrapper').not(item).css("background-color", "");
 		}
@@ -609,7 +609,7 @@ erpnext.PointOfSale.ItemCart = class {
 			if (item_data.rate && item_data.amount && item_data.rate !== item_data.amount) {
 				return `
 					<div class="item-qty-rate">
-						<div class="item-qty"><span>${item_data.qty || 0}</span></div>
+						<div class="item-qty"><span>${item_data.qty || 0} ${item_data.uom}</span></div>
 						<div class="item-rate-amount">
 							<div class="item-rate">${format_currency(item_data.amount, currency)}</div>
 							<div class="item-amount">${format_currency(item_data.rate, currency)}</div>
@@ -618,7 +618,7 @@ erpnext.PointOfSale.ItemCart = class {
 			} else {
 				return `
 					<div class="item-qty-rate">
-						<div class="item-qty"><span>${item_data.qty || 0}</span></div>
+						<div class="item-qty"><span>${item_data.qty || 0} ${item_data.uom}</span></div>
 						<div class="item-rate-amount">
 							<div class="item-rate">${format_currency(item_data.rate, currency)}</div>
 						</div>
@@ -945,7 +945,7 @@ erpnext.PointOfSale.ItemCart = class {
 					`<div class="no-transactions-placeholder">No recent transactions found</div>`
 				)
 				return;
-			};
+			}
 
 			const elapsed_time = moment(res[0].posting_date+" "+res[0].posting_time).fromNow();
 			this.$customer_section.find('.customer-desc').html(`Last transacted ${elapsed_time}`);

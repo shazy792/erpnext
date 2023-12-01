@@ -3,6 +3,7 @@
 
 
 import json
+from typing import Optional
 
 import frappe
 from frappe import _
@@ -22,6 +23,45 @@ STANDARD_USERS = ("Guest", "Administrator")
 
 
 class RequestforQuotation(BuyingController):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		from erpnext.buying.doctype.request_for_quotation_item.request_for_quotation_item import (
+			RequestforQuotationItem,
+		)
+		from erpnext.buying.doctype.request_for_quotation_supplier.request_for_quotation_supplier import (
+			RequestforQuotationSupplier,
+		)
+
+		amended_from: DF.Link | None
+		billing_address: DF.Link | None
+		billing_address_display: DF.SmallText | None
+		company: DF.Link
+		email_template: DF.Link | None
+		incoterm: DF.Link | None
+		items: DF.Table[RequestforQuotationItem]
+		letter_head: DF.Link | None
+		message_for_supplier: DF.TextEditor
+		named_place: DF.Data | None
+		naming_series: DF.Literal["PUR-RFQ-.YYYY.-"]
+		opportunity: DF.Link | None
+		schedule_date: DF.Date | None
+		select_print_heading: DF.Link | None
+		send_attached_files: DF.Check
+		send_document_print: DF.Check
+		status: DF.Literal["", "Draft", "Submitted", "Cancelled"]
+		suppliers: DF.Table[RequestforQuotationSupplier]
+		tc_name: DF.Link | None
+		terms: DF.TextEditor | None
+		transaction_date: DF.Date
+		vendor: DF.Link | None
+	# end: auto-generated types
+
 	def validate(self):
 		self.validate_duplicate_supplier()
 		self.validate_supplier_list()
@@ -112,7 +152,13 @@ class RequestforQuotation(BuyingController):
 
 	def get_link(self):
 		# RFQ link for supplier portal
-		return get_url("/app/request-for-quotation/" + self.name)
+		route = frappe.db.get_value(
+			"Portal Menu Item", {"reference_doctype": "Request for Quotation"}, ["route"]
+		)
+		if not route:
+			frappe.throw(_("Please add Request for Quotation to the sidebar in Portal Settings."))
+
+		return get_url(f"{route}/{self.name}")
 
 	def update_supplier_part_no(self, supplier):
 		self.vendor = supplier
@@ -175,37 +221,46 @@ class RequestforQuotation(BuyingController):
 		if full_name == "Guest":
 			full_name = "Administrator"
 
-		# send document dict and some important data from suppliers row
-		# to render message_for_supplier from any template
 		doc_args = self.as_dict()
-		doc_args.update({"supplier": data.get("supplier"), "supplier_name": data.get("supplier_name")})
 
-		# Get Contact Full Name
-		supplier_name = None
 		if data.get("contact"):
-			contact_name = frappe.db.get_value(
-				"Contact", data.get("contact"), ["first_name", "middle_name", "last_name"]
-			)
-			supplier_name = (" ").join(x for x in contact_name if x)  # remove any blank values
+			contact = frappe.get_doc("Contact", data.get("contact"))
+			doc_args["contact"] = contact.as_dict()
 
-		args = {
-			"update_password_link": update_password_link,
-			"message": frappe.render_template(self.message_for_supplier, doc_args),
-			"rfq_link": rfq_link,
-			"user_fullname": full_name,
-			"supplier_name": supplier_name or data.get("supplier_name"),
-			"supplier_salutation": self.salutation or "Dear Mx.",
-		}
-
-		subject = self.subject or _("Request for Quotation")
-		template = "templates/emails/request_for_quotation.html"
+		doc_args.update(
+			{
+				"supplier": data.get("supplier"),
+				"supplier_name": data.get("supplier_name"),
+				"update_password_link": f'<a href="{update_password_link}" class="btn btn-default btn-xs" target="_blank">{_("Set Password")}</a>',
+				"portal_link": f'<a href="{rfq_link}" class="btn btn-default btn-xs" target="_blank"> {_("Submit your Quotation")} </a>',
+				"user_fullname": full_name,
+			}
+		)
+		email_template = frappe.get_doc("Email Template", self.email_template)
+		message = frappe.render_template(email_template.response_, doc_args)
+		subject = frappe.render_template(email_template.subject, doc_args)
 		sender = frappe.session.user not in STANDARD_USERS and frappe.session.user or None
-		message = frappe.get_template(template).render(args)
 
 		if preview:
-			return message
+			return {"message": message, "subject": subject}
 
-		attachments = self.get_attachments()
+		attachments = []
+		if self.send_attached_files:
+			attachments = self.get_attachments()
+
+		if self.send_document_print:
+			supplier_language = frappe.db.get_value("Supplier", data.supplier, "language")
+			system_language = frappe.db.get_single_value("System Settings", "language")
+			attachments.append(
+				frappe.attach_print(
+					self.doctype,
+					self.name,
+					doc=self,
+					print_format=self.meta.default_print_format or "Standard",
+					lang=supplier_language or system_language,
+					letterhead=self.letter_head,
+				)
+			)
 
 		self.send_email(data, sender, subject, message, attachments)
 
@@ -216,7 +271,6 @@ class RequestforQuotation(BuyingController):
 			recipients=data.email_id,
 			sender=sender,
 			attachments=attachments,
-			print_format=self.meta.default_print_format or "Standard",
 			send_email=True,
 			doctype=self.doctype,
 			name=self.name,
@@ -388,24 +442,26 @@ def create_rfq_items(sq_doc, supplier, data):
 
 
 @frappe.whitelist()
-def get_pdf(doctype, name, supplier, print_format=None, language=None, letter_head=None):
-	# permissions get checked in `download_pdf`
-	if doc := get_rfq_doc(doctype, name, supplier):
-		download_pdf(
-			doctype,
-			name,
-			print_format,
-			doc=doc,
-			language=language,
-			letter_head=letter_head or None,
-		)
-
-
-def get_rfq_doc(doctype, name, supplier):
+def get_pdf(
+	name: str,
+	supplier: str,
+	print_format: Optional[str] = None,
+	language: Optional[str] = None,
+	letterhead: Optional[str] = None,
+):
+	doc = frappe.get_doc("Request for Quotation", name)
 	if supplier:
-		doc = frappe.get_doc(doctype, name)
 		doc.update_supplier_part_no(supplier)
-		return doc
+
+	# permissions get checked in `download_pdf`
+	download_pdf(
+		doc.doctype,
+		doc.name,
+		print_format,
+		doc=doc,
+		language=language,
+		letterhead=letterhead or None,
+	)
 
 
 @frappe.whitelist()

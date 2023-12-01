@@ -18,6 +18,56 @@ class CircularReferenceError(frappe.ValidationError):
 
 
 class Task(NestedSet):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		from erpnext.projects.doctype.task_depends_on.task_depends_on import TaskDependsOn
+
+		act_end_date: DF.Date | None
+		act_start_date: DF.Date | None
+		actual_time: DF.Float
+		closing_date: DF.Date | None
+		color: DF.Color | None
+		company: DF.Link | None
+		completed_by: DF.Link | None
+		completed_on: DF.Date | None
+		department: DF.Link | None
+		depends_on: DF.Table[TaskDependsOn]
+		depends_on_tasks: DF.Code | None
+		description: DF.TextEditor | None
+		duration: DF.Int
+		exp_end_date: DF.Date | None
+		exp_start_date: DF.Date | None
+		expected_time: DF.Float
+		is_group: DF.Check
+		is_milestone: DF.Check
+		is_template: DF.Check
+		issue: DF.Link | None
+		lft: DF.Int
+		old_parent: DF.Data | None
+		parent_task: DF.Link | None
+		priority: DF.Literal["Low", "Medium", "High", "Urgent"]
+		progress: DF.Percent
+		project: DF.Link | None
+		review_date: DF.Date | None
+		rgt: DF.Int
+		start: DF.Int
+		status: DF.Literal[
+			"Open", "Working", "Pending Review", "Overdue", "Template", "Completed", "Cancelled"
+		]
+		subject: DF.Data
+		task_weight: DF.Float
+		template_task: DF.Data | None
+		total_billing_amount: DF.Currency
+		total_costing_amount: DF.Currency
+		type: DF.Link | None
+	# end: auto-generated types
+
 	nsm_parent_field = "parent_task"
 
 	def get_customer_details(self):
@@ -66,8 +116,10 @@ class Task(NestedSet):
 				task_date = self.get(fieldname)
 				if task_date and date_diff(project_end_date, getdate(task_date)) < 0:
 					frappe.throw(
-						_("Task's {0} cannot be after Project's Expected End Date.").format(
-							_(self.meta.get_label(fieldname))
+						_("{0}'s {1} cannot be after {2}'s Expected End Date.").format(
+							frappe.bold(frappe.get_desk_link("Task", self.name)),
+							_(self.meta.get_label(fieldname)),
+							frappe.bold(frappe.get_desk_link("Project", self.project)),
 						),
 						frappe.exceptions.InvalidDates,
 					)
@@ -80,7 +132,7 @@ class Task(NestedSet):
 				if frappe.db.get_value("Task", d.task, "status") not in ("Completed", "Cancelled"):
 					frappe.throw(
 						_(
-							"Cannot complete task {0} as its dependant task {1} are not ccompleted / cancelled."
+							"Cannot complete task {0} as its dependant task {1} are not completed / cancelled."
 						).format(frappe.bold(self.name), frappe.bold(d.task))
 					)
 
@@ -302,6 +354,7 @@ def set_tasks_as_overdue():
 @frappe.whitelist()
 def make_timesheet(source_name, target_doc=None, ignore_permissions=False):
 	def set_missing_values(source, target):
+		target.parent_project = source.project
 		target.append(
 			"time_logs",
 			{

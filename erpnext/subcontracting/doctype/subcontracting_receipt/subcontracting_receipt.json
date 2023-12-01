@@ -11,6 +11,7 @@
   "naming_series",
   "supplier",
   "supplier_name",
+  "supplier_delivery_note",
   "column_break1",
   "company",
   "posting_date",
@@ -40,6 +41,7 @@
   "col_break_warehouse",
   "supplier_warehouse",
   "items_section",
+  "get_scrap_items",
   "items",
   "section_break0",
   "total_qty",
@@ -205,6 +207,7 @@
    "fieldname": "contact_mobile",
    "fieldtype": "Small Text",
    "label": "Mobile No",
+   "options": "Phone",
    "read_only": 1
   },
   {
@@ -250,6 +253,7 @@
    "description": "Sets 'Rejected Warehouse' in each row of the Items table.",
    "fieldname": "rejected_warehouse",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "label": "Rejected Warehouse",
    "no_copy": 1,
    "options": "Warehouse",
@@ -283,7 +287,7 @@
    "reqd": 1
   },
   {
-   "depends_on": "supplied_items",
+   "depends_on": "eval: (!doc.__islocal && doc.docstatus == 0 && doc.supplied_items)",
    "fieldname": "get_current_stock",
    "fieldtype": "Button",
    "label": "Get Current Stock",
@@ -624,12 +628,24 @@
    "fieldtype": "Check",
    "label": "Edit Posting Date and Time",
    "print_hide": 1
+  },
+  {
+   "depends_on": "eval: (!doc.__islocal && doc.docstatus == 0)",
+   "fieldname": "get_scrap_items",
+   "fieldtype": "Button",
+   "label": "Get Scrap Items",
+   "options": "get_scrap_items"
+  },
+  {
+   "fieldname": "supplier_delivery_note",
+   "fieldtype": "Data",
+   "label": "Supplier Delivery Note"
   }
  ],
  "in_create": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2022-11-16 14:18:57.001239",
+ "modified": "2023-11-16 13:04:00.710534",
  "modified_by": "Administrator",
  "module": "Subcontracting",
  "name": "Subcontracting Receipt",

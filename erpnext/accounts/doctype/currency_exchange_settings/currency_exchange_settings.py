@@ -9,6 +9,30 @@ from frappe.utils import nowdate
 
 
 class CurrencyExchangeSettings(Document):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		from erpnext.accounts.doctype.currency_exchange_settings_details.currency_exchange_settings_details import (
+			CurrencyExchangeSettingsDetails,
+		)
+		from erpnext.accounts.doctype.currency_exchange_settings_result.currency_exchange_settings_result import (
+			CurrencyExchangeSettingsResult,
+		)
+
+		access_key: DF.Data | None
+		api_endpoint: DF.Data
+		disabled: DF.Check
+		req_params: DF.Table[CurrencyExchangeSettingsDetails]
+		result_key: DF.Table[CurrencyExchangeSettingsResult]
+		service_provider: DF.Literal["frankfurter.app", "exchangerate.host", "Custom"]
+		url: DF.Data | None
+	# end: auto-generated types
+
 	def validate(self):
 		self.set_parameters_and_result()
 		if frappe.flags.in_test or frappe.flags.in_install or frappe.flags.in_setup_wizard:
@@ -18,11 +42,21 @@ class CurrencyExchangeSettings(Document):
 
 	def set_parameters_and_result(self):
 		if self.service_provider == "exchangerate.host":
+
+			if not self.access_key:
+				frappe.throw(
+					_("Access Key is required for Service Provider: {0}").format(
+						frappe.bold(self.service_provider)
+					)
+				)
+
 			self.set("result_key", [])
 			self.set("req_params", [])
 
 			self.api_endpoint = "https://api.exchangerate.host/convert"
 			self.append("result_key", {"key": "result"})
+			self.append("req_params", {"key": "access_key", "value": self.access_key})
+			self.append("req_params", {"key": "amount", "value": "1"})
 			self.append("req_params", {"key": "date", "value": "{transaction_date}"})
 			self.append("req_params", {"key": "from", "value": "{from_currency}"})
 			self.append("req_params", {"key": "to", "value": "{to_currency}"})

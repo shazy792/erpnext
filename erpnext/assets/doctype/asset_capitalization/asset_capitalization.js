@@ -6,6 +6,7 @@ frappe.provide("erpnext.assets");
 
 erpnext.assets.AssetCapitalization = class AssetCapitalization extends erpnext.stock.StockController {
 	setup() {
+		this.frm.ignore_doctypes_on_cancel_all = ['Serial and Batch Bundle'];
 		this.setup_posting_date_time_check();
 	}
 
@@ -14,10 +15,15 @@ erpnext.assets.AssetCapitalization = class AssetCapitalization extends erpnext.s
 	}
 
 	refresh() {
-		erpnext.hide_company();
 		this.show_general_ledger();
+
 		if ((this.frm.doc.stock_items && this.frm.doc.stock_items.length) || !this.frm.doc.target_is_fixed_asset) {
 			this.show_stock_ledger();
+		}
+
+		if (this.frm.doc.stock_items && !this.frm.doc.stock_items.length && this.frm.doc.target_asset && this.frm.doc.capitalization_method === "Choose a WIP composite asset") {
+			this.set_consumed_stock_items_tagged_to_wip_composite_asset(this.frm.doc.target_asset);
+			this.get_target_asset_details();
 		}
 	}
 
@@ -35,18 +41,9 @@ erpnext.assets.AssetCapitalization = class AssetCapitalization extends erpnext.s
 		});
 
 		me.frm.set_query("target_asset", function() {
-			var filters = {};
-
-			if (me.frm.doc.target_item_code) {
-				filters['item_code'] = me.frm.doc.target_item_code;
-			}
-
-			filters['status'] = ["not in", ["Draft", "Scrapped", "Sold", "Capitalized", "Decapitalized"]];
-			filters['docstatus'] = 1;
-
 			return {
-				filters: filters
-			};
+				filters: {'is_composite_asset': 1, 'docstatus': 0 }
+			}
 		});
 
 		me.frm.set_query("asset", "asset_items", function() {
@@ -62,6 +59,18 @@ erpnext.assets.AssetCapitalization = class AssetCapitalization extends erpnext.s
 			return {
 				filters: filters
 			};
+		});
+
+		me.frm.set_query("serial_and_batch_bundle", "stock_items", (doc, cdt, cdn) => {
+			let row = locals[cdt][cdn];
+			return {
+				filters: {
+					'item_code': row.item_code,
+					'voucher_type': doc.doctype,
+					'voucher_no': ["in", [doc.name, ""]],
+					'is_cancelled': 0,
+				}
+			}
 		});
 
 		me.frm.set_query("item_code", "stock_items", function() {
@@ -99,6 +108,17 @@ erpnext.assets.AssetCapitalization = class AssetCapitalization extends erpnext.s
 				}
 			};
 		});
+
+		let sbb_field = me.frm.get_docfield('stock_items', 'serial_and_batch_bundle');
+		if (sbb_field) {
+			sbb_field.get_route_options_for_new_doc = (row) => {
+				return {
+					'item_code': row.doc.item_code,
+					'warehouse': row.doc.warehouse,
+					'voucher_type': me.frm.doc.doctype,
+				}
+			};
+		}
 	}
 
 	target_item_code() {
@@ -106,7 +126,36 @@ erpnext.assets.AssetCapitalization = class AssetCapitalization extends erpnext.s
 	}
 
 	target_asset() {
-		return this.get_target_asset_details();
+		if (this.frm.doc.target_asset && this.frm.doc.capitalization_method === "Choose a WIP composite asset") {
+			this.set_consumed_stock_items_tagged_to_wip_composite_asset(this.frm.doc.target_asset);
+			this.get_target_asset_details();
+		}
+	}
+
+	set_consumed_stock_items_tagged_to_wip_composite_asset(asset) {
+		var me = this;
+
+		if (asset) {
+			return me.frm.call({
+				method: "erpnext.assets.doctype.asset_capitalization.asset_capitalization.get_items_tagged_to_wip_composite_asset",
+				args: {
+					asset: asset,
+				},
+				callback: function (r) {
+					if (!r.exc && r.message) {
+						me.frm.clear_table("stock_items");
+
+						for (let item of r.message) {
+							me.frm.add_child("stock_items", item);
+						}
+
+						refresh_field("stock_items");
+
+						me.calculate_totals();
+					}
+				}
+			});
+		}
 	}
 
 	item_code(doc, cdt, cdn) {

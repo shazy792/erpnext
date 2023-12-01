@@ -3,7 +3,7 @@
 
 frappe.provide('erpnext.buying');
 
-{% include 'erpnext/stock/landed_taxes_and_charges_common.js' %};
+erpnext.landed_cost_taxes_and_charges.setup_triggers("Subcontracting Order");
 
 frappe.ui.form.on('Subcontracting Order', {
 	setup: (frm) => {
@@ -107,7 +107,7 @@ frappe.ui.form.on('Subcontracting Order', {
 	get_materials_from_supplier: function (frm) {
 		let sco_rm_details = [];
 
-		if (frm.doc.status != "Closed" && frm.doc.supplied_items && frm.doc.per_received > 0) {
+		if (frm.doc.status != "Closed" && frm.doc.supplied_items) {
 			frm.doc.supplied_items.forEach(d => {
 				if (d.total_supplied_qty > 0 && d.total_supplied_qty != d.consumed_qty) {
 					sco_rm_details.push(d.name);
@@ -193,7 +193,7 @@ erpnext.buying.SubcontractingOrderController = class SubcontractingOrderControll
 	}
 
 	has_unsupplied_items() {
-		return this.frm.doc['supplied_items'].some(item => item.required_qty > item.supplied_qty);
+		return this.frm.doc['supplied_items'].some(item => item.required_qty > (item.supplied_qty - item.returned_qty));
 	}
 
 	make_subcontracting_receipt() {

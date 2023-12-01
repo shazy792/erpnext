@@ -3,7 +3,7 @@
 
 
 import frappe
-from frappe import _
+from frappe import _, bold
 from frappe.model.document import Document
 from frappe.query_builder import Criterion
 from frappe.query_builder.functions import Cast_
@@ -15,12 +15,42 @@ class ItemPriceDuplicateItem(frappe.ValidationError):
 
 
 class ItemPrice(Document):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		batch_no: DF.Link | None
+		brand: DF.Link | None
+		buying: DF.Check
+		currency: DF.Link | None
+		customer: DF.Link | None
+		item_code: DF.Link
+		item_description: DF.Text | None
+		item_name: DF.Data | None
+		lead_time_days: DF.Int
+		note: DF.Text | None
+		packing_unit: DF.Int
+		price_list: DF.Link
+		price_list_rate: DF.Currency
+		reference: DF.Data | None
+		selling: DF.Check
+		supplier: DF.Link | None
+		uom: DF.Link | None
+		valid_from: DF.Date | None
+		valid_upto: DF.Date | None
+	# end: auto-generated types
+
 	def validate(self):
 		self.validate_item()
 		self.validate_dates()
 		self.update_price_list_details()
 		self.update_item_details()
 		self.check_duplicates()
+		self.validate_item_template()
 
 	def validate_item(self):
 		if not frappe.db.exists("Item", self.item_code):
@@ -48,6 +78,12 @@ class ItemPrice(Document):
 			self.item_name, self.item_description = frappe.db.get_value(
 				"Item", self.item_code, ["item_name", "description"]
 			)
+
+	def validate_item_template(self):
+		if frappe.get_cached_value("Item", self.item_code, "has_variants"):
+			msg = f"Item Price cannot be created for the template item {bold(self.item_code)}"
+
+			frappe.throw(_(msg))
 
 	def check_duplicates(self):
 
